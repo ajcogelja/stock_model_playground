@@ -21,7 +21,7 @@ def main():
      #print('largest one day change:', largest_mean_open_close_diff_label, ' :', largest_mean_open_close_diff)
      #constant_set, error_log, min_error, min_constants, min_month
      trail_length = 8
-     ticker_num = 0
+     ticker_num = 9
      data = data[data['Name'] == tickers[ticker_num]]
      #data = data[data['date'].dt.year == 2013]
      model, bias, error_log, min_error, min_constants, min_month = build_model(data, 1, 3, trail_length)

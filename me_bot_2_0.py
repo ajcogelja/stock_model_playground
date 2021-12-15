@@ -14,16 +14,22 @@ conn = sqlite3.connect('chat.db')
 def main():
     cur = conn.cursor()
     cur.execute("select name from sqlite_master where type = 'table' ")
-    for n in cur.fetchall():
-        print('n ', n)
+    #for n in cur.fetchall():
+        #print('n ', n)
     messages = pd.read_sql_query("select * from message limit 1200", conn)
+    training_data = messages.sample(frac=.7)
+    remaining = messages.drop(training_data.index)
+    testing = remaining.sample(frac=.66)
+    hold_out = remaining.drop(testing)
+    
+
     for col in messages.columns:
         print(col)
     
     text = []
-    for index, row in messages.iterrows():
+    for index, row in training_data.iterrows():
         if row['text'] is not None:
-            print(row['text'])
+            #print(row['text'])
             text.append(row['text'])
             for s in row['text'].split():
                 count_prefix_suffix(s)
@@ -48,6 +54,18 @@ def main():
 
     model = train_model(text, weighted_pref_freq, weighted_suff_freq)
 
+def word_vector(word, pref_freq, suff_freq):
+    vec_len = 8
+    vec = []
+    if word is None:
+        for i in range(vec_len):
+            vec.append(0)
+        return vec
+    #get prefix
+    #get suffix
+    
+    return vec
+    
 
 def train_model(text, pref_freq, suff_freq):
     #gosh what structure even???
@@ -62,6 +80,18 @@ def train_model(text, pref_freq, suff_freq):
     model = {
 
     }
+
+    for entry in text:
+        last_word = None
+        last_word_vec = []
+        sum = 0
+        for word in entry.split():
+            slope = 0
+            if last_word in model:
+                model[last_word] = model[last_word].append((slope, sum, word))
+            else:
+                model[last_word] = [(slope, sum, word)]
+            
 
     #training
     #last word = None

@@ -16,7 +16,7 @@ def main():
     cur.execute("select name from sqlite_master where type = 'table' ")
     for n in cur.fetchall():
         print('n ', n)
-    messages = pd.read_sql_query("select * from message limit 800", conn)
+    messages = pd.read_sql_query("select * from message limit 1200", conn)
     for col in messages.columns:
         print(col)
     
@@ -41,12 +41,45 @@ def main():
     for key in prefix_freq:
         weighted_pref_freq[key] = (prefix_freq[key]*len(key)**1.4)/sum_prefix
 
-    print('prefix max: ', max(weighted_pref_freq, key=weighted_pref_freq.get))
-    print('suffix max: ', max(weighted_suff_freq, key=weighted_suff_freq.get))
-    #print("messages: ", messages)
+    #print('prefix max: ', max(weighted_pref_freq, key=weighted_pref_freq.get))
+    #print('suffix max: ', max(weighted_suff_freq, key=weighted_suff_freq.get))
+    #print("messages: ", messages)    
     print("Hello and welcome to the M.e Bot ai program trained!")
 
+    model = train_model(text, weighted_pref_freq, weighted_suff_freq)
 
+
+def train_model(text, pref_freq, suff_freq):
+    #gosh what structure even???
+    #if variable length, how do i actually apply that for a prediction?
+    #if we use last_word, word, and sum?
+    #make last_word_vec and word_vec
+    #calc slope between them?
+    #store sorted based on last_word, slope, sum
+    #so when predicting, we have generated k words, we pass in word k, sum, and then the slope from last_last_word to last_word
+    #word_1 word_2 (last last) word_3 (last) ...
+    #  word_k + 1 = gen_word(word_k, word_k-1, sum)
+    model = {
+
+    }
+
+    #training
+    #last word = None
+    #sum = 0 vector
+    #for word in sentence:
+    # vectorize last word, word
+    #calc slope or delta word - last word
+
+    #model[word] = [(slope_0, sum_0, index_0), ..., (slope_n, sum_n, index_n)]
+    #for p in model[word]:
+    #   calculate p with closest 
+
+
+    return [0]
+
+def gen_word(model, word_k, word_k_1, sum):
+    slope = word_k_1 - word_k
+    #locate the entry in model with data hashed to word_k with the slope and sum closest to out slope and sum
 
 #preprocessing
 def count_prefix_suffix(word):

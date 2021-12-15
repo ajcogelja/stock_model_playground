@@ -18,7 +18,7 @@ def main():
     cur.execute("select name from sqlite_master where type = 'table' ")
     #for n in cur.fetchall():
         #print('n ', n)
-    messages = pd.read_sql_query("select * from message limit 1800", conn)
+    messages = pd.read_sql_query("select * from message limit 2500", conn)
     training_data = messages.sample(frac=.7)
     remaining = messages.drop(training_data.index)
     testing = remaining.sample(frac=.66)
@@ -438,7 +438,6 @@ def gen_word(model, word_k, word_k_vec, word_slope, index):
         tuple_word_slope = tuple[6]
         #print('tuple:\n', tuple)
         #start with just comparing tuple_word_vec with word_k_vec
-        print('word_k vec: ', word_k_vec, 'tuple word vec: ', tuple_word_vec)
         delta = calc_vector_delta(word_k_vec, tuple_word_vec)
         if delta[0] < min_tuple_dist_0:
             min_tuple_dist_0 = delta[0]

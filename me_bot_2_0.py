@@ -18,7 +18,7 @@ def main():
     cur.execute("select name from sqlite_master where type = 'table' ")
     # for n in cur.fetchall():
     #     print('TABLE: ', n)
-    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 2500", conn)
+    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 8000", conn)
     handles = pd.read_sql_query("select * from handle", conn)
     # and join to the messages, on handle_id
     # print(messages.columns)
@@ -31,7 +31,7 @@ def main():
     testing = remaining.sample(frac=.66)
     hold_out = remaining.drop(testing.index)
     
-    print(training_data.columns)
+    #print(training_data.columns)
 
     #for col in messages.columns:
     #    print(col)
@@ -467,7 +467,7 @@ def gen_word(model, word_k, word_k_vec, word_slope, index):
     best_tuple_1 = None
     min_tuple_dist_1 = float('inf')
     sorted_possible = sorted(possible, key=lambda tuple : calc_vector_delta(word_k_vec, tuple[5])[0])
-    print('sorted possible: ', sorted_possible[:min(len(sorted_possible), 6)])
+    #print('sorted possible: ', sorted_possible[:min(len(sorted_possible), 6)])
     return sorted_possible[:min(len(sorted_possible), 6)]
     # for tuple in possible:
     #     #print('word: ', word_k , ' ', tuple)

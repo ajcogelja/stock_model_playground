@@ -419,6 +419,7 @@ def calc_slope(word_vec, last_word_vec, index):
         delta.append(index_delta)
     return delta
 
+#Some error vals are vastly different from others which skews this too much, I would like to "normalize" this a bit
 def calc_vector_delta(word, last_word):
     error = 0
     other_error = 0

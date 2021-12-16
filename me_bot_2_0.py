@@ -16,14 +16,22 @@ conn = sqlite3.connect('chat.db')
 def main():
     cur = conn.cursor()
     cur.execute("select name from sqlite_master where type = 'table' ")
-    #for n in cur.fetchall():
-        #print('n ', n)
-    messages = pd.read_sql_query("select * from message limit 2500", conn)
-    training_data = messages.sample(frac=.7)
-    remaining = messages.drop(training_data.index)
+    # for n in cur.fetchall():
+    #     print('TABLE: ', n)
+    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 2500", conn)
+    handles = pd.read_sql_query("select * from handle", conn)
+    # and join to the messages, on handle_id
+    # print(messages.columns)
+    # print(handles.columns)
+    messages.rename(columns={'ROWID' : 'message_id'}, inplace = True)
+    handles.rename(columns={'id' : 'phone_number', 'ROWID': 'handle_id'}, inplace = True)
+    merge_level_1 = temp = pd.merge(messages[['text', 'handle_id', 'date','is_sent', 'message_id', 'is_from_me']],  handles[['handle_id', 'phone_number']], on ='handle_id', how='left')
+    training_data = merge_level_1.sample(frac=.7)
+    remaining = merge_level_1.drop(training_data.index)
     testing = remaining.sample(frac=.66)
     hold_out = remaining.drop(testing.index)
     
+    print(training_data.columns)
 
     #for col in messages.columns:
     #    print(col)
@@ -32,6 +40,7 @@ def main():
     for index, row in training_data.iterrows():
         if row['text'] is not None:
             text.append(row['text'].lower())
+            #print(row['is_from_me'])
 
     
     for index, row in messages.iterrows():
@@ -59,8 +68,9 @@ def main():
     #print("Hello and welcome to the M.e Bot ai program trained!")
 
     model = train_model(text, weighted_pref_freq, weighted_suff_freq)
+    generator = np.random.default_rng()
 
-    print(model.keys())
+    #print(model.keys())
     ask_phase = True
     while ask_phase:
         not_found = True
@@ -87,12 +97,30 @@ def main():
         output = gen_word(model, word, word_vec, word_vec, index)
         #(best_tuple_0, min_tuple_dist_0 ,best_tuple_1, min_tuple_dist_1)
         #print('me bots best two tuples under different metrics: ', output)
-        preferred_tuple = output[0]
+        #print('output: ', output)
+        #output is k tuples:
+        #randomly select one favoring lower number results
+        probs = []
+        prob_dist = []
+        num_tuples = len(output)
+        for i in range(num_tuples):
+            prob_dist.append((num_tuples - i)**1.3)
+        for i in range(num_tuples):
+            probs.append(prob_dist[i]/sum(prob_dist))
+        
+        generator = np.random.default_rng()
+        preferred_tuple = generator.choice(output, p=probs)
+        #print("pref tuple", preferred_tuple)
+        
+
+        #preferred_tuple = output[0]
         next_word = preferred_tuple[4]
-        last_slope = slope
         last_vec = word_vec
         index += 1
-        while next_word in model.keys() and index < 20:
+        gen_again = True
+        alpha = 5
+        beta = 1
+        while next_word in model.keys() and index < 40 and gen_again:
             word = next_word
             sentence += ' ' + word
             word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, 1, 2)
@@ -100,11 +128,22 @@ def main():
             output = gen_word(model, word, word_vec, word_vec, index)
             #(best_tuple_0, min_tuple_dist_0 ,best_tuple_1, min_tuple_dist_1)
             #print('me bots best two tuples under different metrics: ', output)
-            preferred_tuple = output[0]
+            probs = []
+            prob_dist = []
+            num_tuples = len(output)
+            for i in range(num_tuples):
+                prob_dist.append((num_tuples - i)**1.3)
+            for i in range(num_tuples):
+                probs.append(prob_dist[i]/sum(prob_dist))
+            preferred_tuple = generator.choice(output, p=probs)
+
             next_word = preferred_tuple[4]
             last_slope = slope
             last_vec = word_vec
             index += 1
+            again = random.betavariate(alpha, beta)
+            if again < float(i/50):
+                again = False
 
         sentence += ' ' + next_word
 
@@ -427,26 +466,29 @@ def gen_word(model, word_k, word_k_vec, word_slope, index):
     min_tuple_dist_0 = float('inf')
     best_tuple_1 = None
     min_tuple_dist_1 = float('inf')
-    for tuple in possible:
-        #print('word: ', word_k , ' ', tuple)
-        tuple_slope = tuple[0]
-        tuple_sum = tuple[1]
-        tuple_index = tuple[2]
-        tuple_rel_index = tuple[3]
-        tuple_next_word = tuple[4]
-        tuple_word_vec = tuple[5]
-        tuple_word_slope = tuple[6]
-        #print('tuple:\n', tuple)
-        #start with just comparing tuple_word_vec with word_k_vec
-        delta = calc_vector_delta(word_k_vec, tuple_word_vec)
-        if delta[0] < min_tuple_dist_0:
-            min_tuple_dist_0 = delta[0]
-            best_tuple_0 = tuple
-        if delta[1] < min_tuple_dist_1:
-            min_tuple_dist_1 = delta[1]
-            best_tuple_1 = tuple
+    sorted_possible = sorted(possible, key=lambda tuple : calc_vector_delta(word_k_vec, tuple[5])[0])
+    print('sorted possible: ', sorted_possible[:min(len(sorted_possible), 6)])
+    return sorted_possible[:min(len(sorted_possible), 6)]
+    # for tuple in possible:
+    #     #print('word: ', word_k , ' ', tuple)
+    #     tuple_slope = tuple[0]
+    #     tuple_sum = tuple[1]
+    #     tuple_index = tuple[2]
+    #     tuple_rel_index = tuple[3]
+    #     tuple_next_word = tuple[4]
+    #     tuple_word_vec = tuple[5]
+    #     tuple_word_slope = tuple[6]
+    #     #print('tuple:\n', tuple)
+    #     #start with just comparing tuple_word_vec with word_k_vec
+    #     delta = calc_vector_delta(word_k_vec, tuple_word_vec)
+    #     if delta[0] < min_tuple_dist_0:
+    #         min_tuple_dist_0 = delta[0]
+    #         best_tuple_0 = tuple
+    #     if delta[1] < min_tuple_dist_1:
+    #         min_tuple_dist_1 = delta[1]
+    #         best_tuple_1 = tuple
 
-    return (best_tuple_0, min_tuple_dist_0 ,best_tuple_1, min_tuple_dist_1)
+    # return (best_tuple_0, min_tuple_dist_0 ,best_tuple_1, min_tuple_dist_1)
 
 #preprocessing
 def count_prefix_suffix(word):

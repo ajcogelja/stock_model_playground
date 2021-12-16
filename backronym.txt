@@ -1,0 +1,11 @@
+Perceptron - P
+Augmented - A
+Arbitrary - A
+Recall - R
+of - o
+Text - T
+
+Process - P
+And - A
+Respond - R
+

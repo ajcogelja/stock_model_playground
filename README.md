@@ -1,4 +1,6 @@
 # stock_model_playground
-using some python for stock predictions and experimentations
+using python with pandas and numpy for some basic/experimental models
 
+
+#me_bot
 https://bib.dbvis.de/uploadedFiles/155.pdf <- read this

@@ -13,12 +13,24 @@ prefix_freq = {}
 
 conn = sqlite3.connect('chat.db')
 
+# def to_lower_handler(t):
+#     if t is None:
+#         return
+#     return t.lower()
+
+# def split_msg(msg):
+#     if msg is not None:
+#         return msg.lower().split(' ')
+#     return
+
 def main():
     cur = conn.cursor()
-    cur.execute("select name from sqlite_master where type = 'table' ")
+    #cur.execute("select name from sqlite_master where type = 'table' ")
     # for n in cur.fetchall():
     #     print('TABLE: ', n)
-    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 8000", conn)
+    #count = pd.read_sql_query("select Count(*) from message where is_from_me = 1", conn)
+    #print(count)#57722 messages from me
+    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 15000", conn)
     handles = pd.read_sql_query("select * from handle", conn)
     # and join to the messages, on handle_id
     # print(messages.columns)
@@ -37,17 +49,26 @@ def main():
     #    print(col)
     
     text = []
-    for index, row in training_data.iterrows():
-        if row['text'] is not None:
-            text.append(row['text'].lower())
+    #lower_text = [ t for t in training_data['text']]
+    for msg in training_data['text']:
+        if msg is not None:
+            text.append(msg.lower())
+    #for index, row in training_data.iterrows():
+    #    if row['text'] is not None:
+    #        text.append(row['text'].lower())
             #print(row['is_from_me'])
 
-    
-    for index, row in messages.iterrows():
-        if row['text'] is not None:
-            #text.append(row['text'])
-            for s in row['text'].split(' '):
-                count_prefix_suffix(s.lower())
+    #lower_msg = [ msg for msg in messages['text']]
+    for msg in messages['text']:
+        if msg is not None:
+            for word in msg.split(' '):
+                if word is not None:
+                    count_prefix_suffix(word.lower())
+    #for index, row in messages.iterrows():
+    #    if row['text'] is not None:
+    #        #text.append(row['text'])
+    #        for s in row['text'].split(' '):
+    #            count_prefix_suffix(s.lower())
 
     sum_prefix = 0
     sum_suffix = 0
@@ -78,7 +99,7 @@ def main():
         print('Enter a word and me bot will suggest a follow up')
         word = ""
         last_word = None
-        last_vec = word_vector(last_word, None, None, 0, 0)
+        last_vec = word_vector(last_word, None, None, 0)
         last_slope = last_vec
         sentence = ""
 
@@ -92,7 +113,7 @@ def main():
 
         sentence += word
 
-        word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, 1, 2)
+        word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, 1)
         slope = calc_slope(word_vec, last_vec, index)
         output = gen_word(model, word, word_vec, word_vec, index)
         #(best_tuple_0, min_tuple_dist_0 ,best_tuple_1, min_tuple_dist_1)
@@ -123,7 +144,7 @@ def main():
         while next_word in model.keys() and index < 40 and gen_again:
             word = next_word
             sentence += ' ' + word
-            word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, 1, 2)
+            word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, index) #last param is irrelevant for now
             slope = calc_slope(word_vec, last_vec, index)
             output = gen_word(model, word, word_vec, word_vec, index)
             #(best_tuple_0, min_tuple_dist_0 ,best_tuple_1, min_tuple_dist_1)
@@ -142,7 +163,7 @@ def main():
             last_vec = word_vec
             index += 1
             again = random.betavariate(alpha, beta)
-            if again < float(i/50):
+            if again < float(i/60):
                 again = False
 
         sentence += ' ' + next_word
@@ -158,8 +179,8 @@ def main():
 
 
 #todo
-def word_vector(word, pref_freq, suff_freq, index, sentence_length):
-    vec_len = 9
+def word_vector(word, pref_freq, suff_freq, index):
+    vec_len = 18
     max_traces = 12
     vec = []
     if word is None:
@@ -183,6 +204,18 @@ def word_vector(word, pref_freq, suff_freq, index, sentence_length):
     word_sum = sum_word(word)
     word_traces = gen_traces(word, max_traces)
     trace_tuple = process_traces(word_traces)
+    trace_avg = trace_tuple[0]
+    trace_unweighted_avg = trace_tuple[1]
+    trace_max_avg_poly_delta = trace_tuple[2]
+    trace_min_avg_poly_delta = trace_tuple[3]
+    trace_max_root_avg_poly_delta = trace_tuple[4]
+    trace_min_root_avg_poly_delta = trace_tuple[5]
+    trace_max_avg_lin_delta = trace_tuple[6]
+    trace_min_avg_lin_delta = trace_tuple[7]
+    trace_max_root_avg_lin_delta = trace_tuple[8]
+    trace_min_root_avg_lin_delta = trace_tuple[9]
+
+
     #trace tuple contains: 
     """
     return (
@@ -194,15 +227,25 @@ def word_vector(word, pref_freq, suff_freq, index, sentence_length):
     max_root_avg_linear_delta, min_root_avg_linear_delta,
     )"""
     #add all to vector
-    vec.append(prefix_tuple[1])
-    vec.append(suffix_tuple[1])
-    vec.append(punc_count)
-    vec.append(word_sum)
-    vec.append(len(prefix_tuple[0]))
-    vec.append(len(suffix_tuple[0]))
-    vec.append(len(word))
-    vec.append(index)
-    vec.append(index/sentence_length)
+    vec.append(prefix_tuple[1]) #1
+    vec.append(suffix_tuple[1]) #2
+    vec.append(punc_count) #3
+    vec.append(word_sum) #4
+    vec.append(len(prefix_tuple[0])) #5
+    vec.append(len(suffix_tuple[0])) #6
+    vec.append(len(word)) #7
+    vec.append(index) #8
+    vec.append(trace_avg) #9
+    vec.append(trace_unweighted_avg) #10
+    vec.append(trace_max_avg_poly_delta) #11
+    vec.append(trace_min_avg_poly_delta) #12
+    vec.append(trace_max_root_avg_poly_delta) #13
+    vec.append(trace_min_root_avg_poly_delta) #14
+    vec.append(trace_max_avg_lin_delta) #15
+    vec.append(trace_min_avg_lin_delta) #16
+    vec.append(trace_max_root_avg_lin_delta) #17
+    vec.append(trace_min_root_avg_lin_delta) #18
+    
     
     return vec
 
@@ -381,10 +424,10 @@ def calc_vector_delta(word, last_word):
     other_error = 0
     #print('delta: ', word, ' ', last_word)
     for i in range(len(word)):
-        error += (word[i] - last_word[i])**2
+        error += ((word[i] - last_word[i]))**2 #I think these are too variable and we need to scale it down maybe
         other_error += (word[i] - last_word[i])**2/max(word[i]**2, last_word[i]**2, 1)
     
-    return (error**.5, other_error**.5)
+    return ((error/len(word))**.5, (other_error/len(word))**.5)
 
 #todo - finish
 def train_model(text, pref_freq, suff_freq):
@@ -403,7 +446,7 @@ def train_model(text, pref_freq, suff_freq):
 
     for entry in text:
         last_word = None
-        last_word_vec = word_vector(last_word, suff_freq, pref_freq, 0, 0)
+        last_word_vec = word_vector(last_word, suff_freq, pref_freq, 0)
         last_slope = last_word_vec
         sum = last_word_vec
         index = 1
@@ -412,7 +455,7 @@ def train_model(text, pref_freq, suff_freq):
         for word in words:
             if word is None:
                 continue
-            word_vec = word_vector(word, pref_freq, suff_freq, index, max_length)
+            word_vec = word_vector(word, pref_freq, suff_freq, index)
             #slope = 0
             slope = calc_slope(word_vec, last_word_vec, index) #add some modifier based on index/max_length?
             if last_word not in model.keys():
@@ -462,13 +505,10 @@ def gen_word(model, word_k, word_k_vec, word_slope, index):
     # p_7 index
     # p_8 relative index/percentage
     # """)
-    best_tuple_0 = None
-    min_tuple_dist_0 = float('inf')
-    best_tuple_1 = None
-    min_tuple_dist_1 = float('inf')
+
     sorted_possible = sorted(possible, key=lambda tuple : calc_vector_delta(word_k_vec, tuple[5])[0])
     #print('sorted possible: ', sorted_possible[:min(len(sorted_possible), 6)])
-    return sorted_possible[:min(len(sorted_possible), 6)]
+    return sorted_possible[:min(len(sorted_possible), 8)]
     # for tuple in possible:
     #     #print('word: ', word_k , ' ', tuple)
     #     tuple_slope = tuple[0]
@@ -494,8 +534,13 @@ def gen_word(model, word_k, word_k_vec, word_slope, index):
 def count_prefix_suffix(word):
     #gen word vector based off word and last_word
     
+    if word is None:
+        return
+
     #detect_pref
     word_len = len(word)
+    if word_len == 0:
+        return
 
     if word_len == 1:
         if word in prefix_freq:

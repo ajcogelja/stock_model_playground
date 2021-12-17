@@ -13,28 +13,15 @@ prefix_freq = {}
 
 conn = sqlite3.connect('chat.db')
 
-# def to_lower_handler(t):
-#     if t is None:
-#         return
-#     return t.lower()
-
-# def split_msg(msg):
-#     if msg is not None:
-#         return msg.lower().split(' ')
-#     return
-
 def main():
-    cur = conn.cursor()
+    #cur = conn.cursor()
     #cur.execute("select name from sqlite_master where type = 'table' ")
     # for n in cur.fetchall():
     #     print('TABLE: ', n)
     #count = pd.read_sql_query("select Count(*) from message where is_from_me = 1", conn)
     #print(count)#57722 messages from me
-    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 15000", conn)
+    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 8000", conn)
     handles = pd.read_sql_query("select * from handle", conn)
-    # and join to the messages, on handle_id
-    # print(messages.columns)
-    # print(handles.columns)
     messages.rename(columns={'ROWID' : 'message_id'}, inplace = True)
     handles.rename(columns={'id' : 'phone_number', 'ROWID': 'handle_id'}, inplace = True)
     merge_level_1 = temp = pd.merge(messages[['text', 'handle_id', 'date','is_sent', 'message_id', 'is_from_me']],  handles[['handle_id', 'phone_number']], on ='handle_id', how='left')
@@ -43,32 +30,18 @@ def main():
     testing = remaining.sample(frac=.66)
     hold_out = remaining.drop(testing.index)
     
-    #print(training_data.columns)
-
-    #for col in messages.columns:
-    #    print(col)
     
     text = []
-    #lower_text = [ t for t in training_data['text']]
     for msg in training_data['text']:
         if msg is not None:
             text.append(msg.lower())
-    #for index, row in training_data.iterrows():
-    #    if row['text'] is not None:
-    #        text.append(row['text'].lower())
-            #print(row['is_from_me'])
 
-    #lower_msg = [ msg for msg in messages['text']]
     for msg in messages['text']:
         if msg is not None:
             for word in msg.split(' '):
                 if word is not None:
                     count_prefix_suffix(word.lower())
-    #for index, row in messages.iterrows():
-    #    if row['text'] is not None:
-    #        #text.append(row['text'])
-    #        for s in row['text'].split(' '):
-    #            count_prefix_suffix(s.lower())
+
 
     sum_prefix = 0
     sum_suffix = 0
@@ -83,15 +56,25 @@ def main():
     for key in prefix_freq.keys():
         weighted_pref_freq[key] = (prefix_freq[key]*len(key)**1.4)/sum_prefix
 
-    #print('prefix max: ', max(weighted_pref_freq, key=weighted_pref_freq.get))
-    #print('suffix max: ', max(weighted_suff_freq, key=weighted_suff_freq.get))
-    #print("messages: ", messages)    
-    #print("Hello and welcome to the M.e Bot ai program trained!")
+
+    print("Hello and welcome to the M.e Bot ai program trained!")
 
     model = train_model(text, weighted_pref_freq, weighted_suff_freq)
     generator = np.random.default_rng()
+    weights = []
+    weight_vec_len = 18
+    
 
-    #print(model.keys())
+    print('enter weights?')
+    enter_weights = input()
+    if str(enter_weights).lower() == "y":
+        for i in range(weight_vec_len):
+            print('weights so far:', weights, 'enter weight ', i, ':')
+            weights.append(input())
+    else:
+        for i in range(weight_vec_len):
+            weights.append(random.uniform(-2.0, 2.0))
+
     ask_phase = True
     while ask_phase:
         not_found = True
@@ -100,6 +83,7 @@ def main():
         word = ""
         last_word = None
         last_vec = word_vector(last_word, None, None, 0)
+        vec_sum = last_vec
         last_slope = last_vec
         sentence = ""
 
@@ -109,16 +93,14 @@ def main():
                 not_found = False
             else:
                 print("word: ", word, ' not found. Enter another: ')
-                #word = input()
 
         sentence += word
 
         word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, 1)
+        for i in range(len(word_vec)):
+            vec_sum[i] += word_vec[i]
         slope = calc_slope(word_vec, last_vec, index)
-        output = gen_word(model, word, word_vec, word_vec, index)
-        #(best_tuple_0, min_tuple_dist_0 ,best_tuple_1, min_tuple_dist_1)
-        #print('me bots best two tuples under different metrics: ', output)
-        #print('output: ', output)
+        output = gen_word(model, word, word_vec, word_vec, index, weights)
         #output is k tuples:
         #randomly select one favoring lower number results
         probs = []
@@ -130,25 +112,22 @@ def main():
             probs.append(prob_dist[i]/sum(prob_dist))
         
         generator = np.random.default_rng()
-        preferred_tuple = generator.choice(output, p=probs)
-        #print("pref tuple", preferred_tuple)
+        preferred_tuple = generator.choice(np.array(output, dtype=object), p=probs)
         
-
-        #preferred_tuple = output[0]
         next_word = preferred_tuple[4]
         last_vec = word_vec
         index += 1
         gen_again = True
         alpha = 5
         beta = 1
-        while next_word in model.keys() and index < 40 and gen_again:
+        while next_word in model.keys() and index < 50 and gen_again:
             word = next_word
             sentence += ' ' + word
             word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, index) #last param is irrelevant for now
+            for i in range(len(word_vec)):
+                vec_sum[i] += word_vec[i]
             slope = calc_slope(word_vec, last_vec, index)
-            output = gen_word(model, word, word_vec, word_vec, index)
-            #(best_tuple_0, min_tuple_dist_0 ,best_tuple_1, min_tuple_dist_1)
-            #print('me bots best two tuples under different metrics: ', output)
+            output = gen_word(model, word, word_vec, word_vec, index, weights)
             probs = []
             prob_dist = []
             num_tuples = len(output)
@@ -156,27 +135,108 @@ def main():
                 prob_dist.append((num_tuples - i)**1.3)
             for i in range(num_tuples):
                 probs.append(prob_dist[i]/sum(prob_dist))
-            preferred_tuple = generator.choice(output, p=probs)
+            preferred_tuple = generator.choice(np.array(output, dtype=object), p=probs)
 
             next_word = preferred_tuple[4]
             last_slope = slope
             last_vec = word_vec
             index += 1
             again = random.betavariate(alpha, beta)
-            if again < float(i/60):
+            if again < float(i/75):
                 again = False
 
         sentence += ' ' + next_word
 
         print('sentence: ', sentence)
+        print('vector sum: ', vec_sum)
+        evaluate = False
+        if evaluate:
+            score = input("rate the comprehension of the sentence 0-100, 0 - bad 100 - great: ")
+            print('score len: ', len(score))
+            score_input = False
+            while not score_input:
+                try:
+                    score_val = int(score.strip())
+                    if score_val >= 0 and score_val <= 100:
+        #            print('adjusting weights...')
+                        weights = adjust_weights(score_val, weights, sentence, vec_sum)
+                        score_input = True
+                    else:
+                        print(score, 'value not in range')
+                except Exception as err:
+                    print(score, 'you did not enter an integer Dave...')
+                    score = input("enter a number between 0 and 100 inclusive: ")
+
 
         #((0: slope, 1: sum, 2: index, 3: float(index/max_length), 4: next_word,  5: last_word_vec, 6: last_slope))
         print('ask again? (y/n)')
         repeat_str = input()
         if repeat_str.lower() != 'y':
             ask_phase = False
+    print('final weights: ', weights)
     print('thanks for using me bot! Cya')
 
+
+def adjust_weights(score, weights, sentence, vec_sum):
+    if score >= 95:
+        return weights
+
+    sent_len = len(sentence) #punish longer sentences less harshly?
+    sent_len_modifier = (1/(sent_len + 1.5)) #sentence length of 1 is 1/2.5, 2 is 1/3.5, etc
+    score_normal = float(score/100.0)
+    k_root = 5 #hyper parameter
+    for i in range(len(weights)):
+        if random.random() < .25: #stochastically adjust weights
+            continue
+
+        if abs(weights[i]) < 1e-6:
+            print('too small!')
+            weights[i] *= 1.1
+            continue
+
+        weight_i_max_delta = abs(weights[i])
+        #vec_sum[i] compares with weights[i], modify weight_1 proportionally to the weight and to the sum of that spot, so larger arent crazy dominant
+        weight_i_max_delta *= (1 - score_normal + .005) #a good comprehension is close to 1, so weight_i will be super small if good
+        weight_i_max_delta *= sent_len_modifier #shorter sentences get punished harder
+        if abs(vec_sum[i]) > 1.2:
+            weight_i_max_delta *= math.log(abs(vec_sum[i]), k_root) #basically, large or massive numbers dont make absurdly huge constant spikes here
+        #weight_i is used to determine how much we vary the weight by
+
+        weight_delta_min = min(weight_i_max_delta, weights[i]*.05)
+        weight_delta_max = max(weight_i_max_delta, weights[i]*.05) #big delta, higher max
+        weight_delta = random.uniform(weight_delta_min, weight_delta_max)
+        #look at weight_i 
+        #if weight/sum are both really large (relatively) we will favor decreasing weight magnitude and subtraction
+        #if weight and sum are both small we will favor
+        #could multiple weight and magnitude of sum
+        alpha = max(min(abs(weights[i]*vec_sum[i]), 70), 2)
+        beta = 1
+        reduce_mag = False
+        magnitude_change_pick = random.betavariate(alpha, beta)#what distr we want
+        #large magnitude alpha means its very very unlikely that value is low
+        #larger alpha means its decreasingly that value is < mean
+        if magnitude_change_pick > alpha/(alpha + beta):
+            reduce_mag = True
+        
+        #vec_sum and weight value both relatively large
+        #reduce weight magnitude
+        if reduce_mag:
+            #weight > 0 and vec_sum > 0, weight_delta > 0 
+            if weights[i] > 0:
+                weights[i] -= abs(weight_delta)
+            else:
+                weights[i] += abs(weight_delta)
+            #weight -= weight_delta
+            #weight > 0 vec_sum < 0, weight_delta > 0
+        else:
+            if weights[i] < 0:
+                weights[i] -= abs(weight_delta)
+            else:
+                weights[i] += abs(weight_delta)
+
+    #print('new weights:' , weights)
+
+    return weights
 
 #todo
 def word_vector(word, pref_freq, suff_freq, index):
@@ -288,7 +348,7 @@ def process_traces(traces):
             min_avg_poly_delta = avg_poly_delta
         if avg_lin_delta > max_avg_linear_delta:
             max_avg_linear_delta = avg_lin_delta
-        if avg_lin_delta > min_avg_linear_delta:
+        if avg_lin_delta < min_avg_linear_delta:
             min_avg_linear_delta = avg_lin_delta
         if avg_root_poly_delta > max_root_avg_poly_delta:
             max_root_avg_poly_delta = avg_root_poly_delta
@@ -296,14 +356,14 @@ def process_traces(traces):
             min_root_avg_poly_delta = avg_root_poly_delta
         if avg_root_lin_delta > max_root_avg_linear_delta:
             max_root_avg_linear_delta = avg_root_lin_delta
-        if avg_root_lin_delta > min_root_avg_linear_delta:
+        if avg_root_lin_delta < min_root_avg_linear_delta:
             min_root_avg_linear_delta = avg_root_lin_delta    
     
 
     return (
     float(avg_sum/sum_terms),
     float(word_averages/count_of_traces),
-    max_avg_poly_delta, min_avg_poly_delta, 
+    max_avg_poly_delta**.5, min_avg_poly_delta**.5, 
     max_root_avg_poly_delta, min_root_avg_poly_delta,
     max_avg_linear_delta, min_avg_linear_delta,
     max_root_avg_linear_delta, min_root_avg_linear_delta,
@@ -354,7 +414,7 @@ def gen_traces(word, max_traces):
 def startsWithUpper(word):
     letter = word[0]
     ascii = ord(letter)
-    if ascii >= 65 and ascii <= 90:
+    if ascii >= ord('A') and ascii <= ord('Z'):
         return 1
     return 0
 
@@ -420,15 +480,19 @@ def calc_slope(word_vec, last_word_vec, index):
     return delta
 
 #Some error vals are vastly different from others which skews this too much, I would like to "normalize" this a bit
-def calc_vector_delta(word, last_word):
+def calc_vector_delta(word, last_word, weights):
+    #weights = [] #implement weighting??
     error = 0
     other_error = 0
+    fractional_error = 0
+    fraction = .1
     #print('delta: ', word, ' ', last_word)
     for i in range(len(word)):
-        error += ((word[i] - last_word[i]))**2 #I think these are too variable and we need to scale it down maybe
+        error += (weights[i]*(word[i] - last_word[i]))**2 #I think these are too variable and we need to scale it down maybe
+        fractional_error += (weights[i]*abs(word[i] - last_word[i]))**fraction
         other_error += (word[i] - last_word[i])**2/max(word[i]**2, last_word[i]**2, 1)
     
-    return ((error/len(word))**.5, (other_error/len(word))**.5)
+    return (fractional_error**(1/fraction), (error)**.5, (error/len(word))**.5, (fractional_error/len(word)**(1/fraction)))
 
 #todo - finish
 def train_model(text, pref_freq, suff_freq):
@@ -489,7 +553,7 @@ def train_model(text, pref_freq, suff_freq):
 
     return model
 
-def gen_word(model, word_k, word_k_vec, word_slope, index):
+def gen_word(model, word_k, word_k_vec, word_slope, index, weights):
 
     #locate the entry in model with data hashed to word_k with the slope and sum closest to out slope and sum
     possible = model[word_k]
@@ -507,7 +571,7 @@ def gen_word(model, word_k, word_k_vec, word_slope, index):
     # p_8 relative index/percentage
     # """)
 
-    sorted_possible = sorted(possible, key=lambda tuple : calc_vector_delta(word_k_vec, tuple[5])[0])
+    sorted_possible = sorted(possible, key=lambda tuple : calc_vector_delta(word_k_vec, tuple[5], weights)[0])
     #print('sorted possible: ', sorted_possible[:min(len(sorted_possible), 6)])
     return sorted_possible[:min(len(sorted_possible), 8)]
     # for tuple in possible:

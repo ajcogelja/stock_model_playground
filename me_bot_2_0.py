@@ -10,6 +10,7 @@ import sqlite3
 
 suffix_freq = {}
 prefix_freq = {}
+traces_model = {}
 
 conn = sqlite3.connect('chat.db')
 
@@ -20,7 +21,7 @@ def main():
     #     print('TABLE: ', n)
     #count = pd.read_sql_query("select Count(*) from message where is_from_me = 1", conn)
     #print(count)#57722 messages from me
-    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 8000", conn)
+    messages = pd.read_sql_query("select * from message where is_from_me = 1 limit 18000", conn)
     handles = pd.read_sql_query("select * from handle", conn)
     messages.rename(columns={'ROWID' : 'message_id'}, inplace = True)
     handles.rename(columns={'id' : 'phone_number', 'ROWID': 'handle_id'}, inplace = True)
@@ -82,7 +83,7 @@ def main():
         print('Enter a word and me bot will suggest a follow up')
         word = ""
         last_word = None
-        last_vec = word_vector(last_word, None, None, 0)
+        last_vec, traces = word_vector(last_word, None, None, 0)
         vec_sum = last_vec
         last_slope = last_vec
         sentence = ""
@@ -92,15 +93,27 @@ def main():
             if word in model.keys():
                 not_found = False
             else:
-                print("word: ", word, ' not found. Enter another: ')
+                max_traces = 12
+                word_traces = gen_traces(word, max_traces)
+                trace_counts = []
+                for i in range(len(word_traces)):
+                    if word_traces[i] != word:
+                        if word_traces[i] in model.keys():
+                            trace_counts.append(len(model[word_traces[i]]))
+                for i in range(len(trace_counts)):
+                    if random.random() < trace_counts[i]/sum(trace_counts):
+                        word = word_traces[i]
+                        not_found = True
+                if not not_found:
+                    print("word: ", word, ' not found. Enter another: ')
 
         sentence += word
 
-        word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, 1)
+        word_vec, traces = word_vector(word, weighted_pref_freq, weighted_suff_freq, 1)
         for i in range(len(word_vec)):
             vec_sum[i] += word_vec[i]
         slope = calc_slope(word_vec, last_vec, index)
-        output = gen_word(model, word, word_vec, word_vec, index, weights)
+        output = gen_word(model, word, word_vec, word_vec, index, weights, vec_sum, traces)
         #output is k tuples:
         #randomly select one favoring lower number results
         probs = []
@@ -123,11 +136,12 @@ def main():
         while next_word in model.keys() and index < 50 and gen_again:
             word = next_word
             sentence += ' ' + word
-            word_vec = word_vector(word, weighted_pref_freq, weighted_suff_freq, index) #last param is irrelevant for now
+            word_vec, traces = word_vector(word, weighted_pref_freq, weighted_suff_freq, index) #last param is irrelevant for now
             for i in range(len(word_vec)):
                 vec_sum[i] += word_vec[i]
             slope = calc_slope(word_vec, last_vec, index)
-            output = gen_word(model, word, word_vec, word_vec, index, weights)
+            #print('word vector: ', word_vec)
+            output = gen_word(model, word, word_vec, last_vec, index, weights, vec_sum, traces)
             probs = []
             prob_dist = []
             num_tuples = len(output)
@@ -182,11 +196,11 @@ def adjust_weights(score, weights, sentence, vec_sum):
         return weights
 
     sent_len = len(sentence) #punish longer sentences less harshly?
-    sent_len_modifier = (1/(sent_len + 1.5)) #sentence length of 1 is 1/2.5, 2 is 1/3.5, etc
+    sent_len_modifier = (1/(sent_len**.7 + 1.5)) #sentence length of 1 is 1/2.5, 2 is 1/3.5, etc
     score_normal = float(score/100.0)
     k_root = 5 #hyper parameter
     for i in range(len(weights)):
-        if random.random() < .25: #stochastically adjust weights
+        if random.random() < .2: #stochastically adjust weights
             continue
 
         if abs(weights[i]) < 1e-6:
@@ -246,7 +260,8 @@ def word_vector(word, pref_freq, suff_freq, index):
     if word is None:
         for i in range(vec_len):
             vec.append(0)
-        return vec
+        return (vec, [])
+
     #p_0 prefix val
     #p_1 suffix val
     #p_2 count of punctuation
@@ -307,7 +322,7 @@ def word_vector(word, pref_freq, suff_freq, index):
     vec.append(trace_min_root_avg_lin_delta) #18
     
     
-    return vec
+    return (vec, word_traces)
 
 def process_traces(traces):
     max_avg_poly_delta = -float('inf')
@@ -359,7 +374,6 @@ def process_traces(traces):
         if avg_root_lin_delta < min_root_avg_linear_delta:
             min_root_avg_linear_delta = avg_root_lin_delta    
     
-
     return (
     float(avg_sum/sum_terms),
     float(word_averages/count_of_traces),
@@ -380,6 +394,15 @@ def calc_num_traces(word, max_traces):
 
 def gen_traces(word, max_traces):
     #trace -> sum of k of n letters, and then average those letters
+    if word in traces_model.keys():
+        return traces_model[word][:min(len(traces_model[word]), max_traces)]
+
+    if len(word) == 1:
+        return [word]
+    if len(word) < 3:
+        return [word[0], word[1]]
+    
+
     num_traces = calc_num_traces(word, max_traces)
     excluded_indices = []
     max_tries = 5
@@ -388,12 +411,12 @@ def gen_traces(word, max_traces):
 
     for i in range(num_traces):
         #select which indices to exclude by trace index?
-        indices = sorted(random.sample(index_list, i % random.randint(1, word_len)))
+        indices = sorted(random.sample(index_list, random.randint(1, math.ceil(word_len*.7))))
         tries = 0
         while indices in excluded_indices and tries < max_tries:
-            indices = sorted(random.sample(index_list, i % random.randint(1, word_len)))
+            indices = sorted(random.sample(index_list, i % random.randint(1, math.ceil(word_len*.7))))
             tries += 1
-        if tries < max_tries:
+        if tries < max_tries and len(indices) < len(word):
             excluded_indices.append(indices)
         else:
             continue
@@ -407,6 +430,7 @@ def gen_traces(word, max_traces):
                 traces[trace_count] += word[i]
         trace_count += 1
 
+    traces_model[word] = traces
     #gens substrings
     #print('traces for word: ', word, traces)
     return traces
@@ -480,19 +504,25 @@ def calc_slope(word_vec, last_word_vec, index):
     return delta
 
 #Some error vals are vastly different from others which skews this too much, I would like to "normalize" this a bit
-def calc_vector_delta(word, last_word, weights):
+def calc_vector_delta(word, last_word, weights, vec_sum, stored_deltas):
     #weights = [] #implement weighting??
     error = 0
     other_error = 0
     fractional_error = 0
+    fractional_error_with_weights = 0
     fraction = .1
+    sum_fractional_error = 0
     #print('delta: ', word, ' ', last_word)
     for i in range(len(word)):
+        sum_fractional_error += abs((word[i] - last_word[i])/max(vec_sum[i], 1))**fraction
         error += (weights[i]*(word[i] - last_word[i]))**2 #I think these are too variable and we need to scale it down maybe
-        fractional_error += (weights[i]*abs(word[i] - last_word[i]))**fraction
+        fractional_error += abs((word[i] - last_word[i]))**fraction
+        fractional_error_with_weights += abs(weights[i]*(word[i] - last_word[i]))**fraction
+
         other_error += (word[i] - last_word[i])**2/max(word[i]**2, last_word[i]**2, 1)
-    
-    return (fractional_error**(1/fraction), (error)**.5, (error/len(word))**.5, (fractional_error/len(word)**(1/fraction)))
+    #print('fractional error: ', fractional_error)
+    stored_deltas.append((fractional_error**(1/fraction), sum_fractional_error**(1/fraction),(error)**.5, (error/len(word))**.5, (fractional_error/len(word)**(1/fraction))))
+    return (fractional_error**(1/fraction), sum_fractional_error**(1/fraction), fractional_error_with_weights**(1/fraction),(error)**.5, (error/len(word))**.5, (fractional_error/len(word)**(1/fraction)))
 
 #todo - finish
 def train_model(text, pref_freq, suff_freq):
@@ -511,7 +541,7 @@ def train_model(text, pref_freq, suff_freq):
 
     for entry in text:
         last_word = None
-        last_word_vec = word_vector(last_word, suff_freq, pref_freq, 0)
+        last_word_vec, traces = word_vector(last_word, suff_freq, pref_freq, 0)
         last_slope = last_word_vec
         sum = last_word_vec
         index = 1
@@ -520,7 +550,7 @@ def train_model(text, pref_freq, suff_freq):
         for word in words:
             if word is None:
                 continue
-            word_vec = word_vector(word, pref_freq, suff_freq, index)
+            word_vec, traces = word_vector(word, pref_freq, suff_freq, index)
             #slope = 0
             slope = calc_slope(word_vec, last_word_vec, index) #add some modifier based on index/max_length?
             if last_word not in model.keys():
@@ -553,7 +583,7 @@ def train_model(text, pref_freq, suff_freq):
 
     return model
 
-def gen_word(model, word_k, word_k_vec, word_slope, index, weights):
+def gen_word(model, word_k, word_k_vec, word_slope, index, weights, vec_sum, traces):
 
     #locate the entry in model with data hashed to word_k with the slope and sum closest to out slope and sum
     possible = model[word_k]
@@ -568,10 +598,25 @@ def gen_word(model, word_k, word_k_vec, word_slope, index, weights):
     # p_5 index of max_suff_freq
     # p_6 length
     # p_7 index
-    # p_8 relative index/percentage
+    # p_8 relative index/percentageF
     # """)
+    print('traces: ', traces)
 
-    sorted_possible = sorted(possible, key=lambda tuple : calc_vector_delta(word_k_vec, tuple[5], weights)[0])
+    if len(possible) < 8 or len(traces) > len(possible):
+        for i in range(len(traces)):
+            if traces[i] in model.keys():
+                additional = model[traces[i]]
+                if len(additional) > 3:
+                    for j in range(len(additional)):
+                        if random.random() < 1.1/len(additional)**.5:
+                            possible.append(additional[j])
+
+    stored_deltas = []
+
+    sorted_possible = sorted(possible, key=lambda tuple : calc_vector_delta(word_k_vec, tuple[5], weights, vec_sum, stored_deltas)[1]) #0 or 1 may work...
+
+                
+    #is sorted_possible is less than, lets try using some traces!!!
     #print('sorted possible: ', sorted_possible[:min(len(sorted_possible), 6)])
     return sorted_possible[:min(len(sorted_possible), 8)]
     # for tuple in possible:

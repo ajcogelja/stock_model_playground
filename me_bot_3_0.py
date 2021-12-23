@@ -38,27 +38,15 @@ def main():
             texts.append(msg)
 
         
-    words = {
-
-    }
-
-    traces = {
-
-    }
-
-    word_count = {
-
-    }
-
-    trace_count = {
-
-    }
-
+    words = {}
+    traces = {}
+    word_count = {}
+    trace_count = {}
     word_radius = 0
 
     for t in texts:
         words, traces = process_texts(words, traces, t, word_count, trace_count)
-        calc_radius = calc_radius(words, traces, word_count, trace_count)
+        word_radius = calc_radius(words, traces, word_count, trace_count)
 
 def process_texts(word_dict, trace_dict, word_count, trace_count, curr_text):
     words = curr_text.split(' ')

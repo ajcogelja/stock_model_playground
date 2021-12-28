@@ -74,7 +74,21 @@ def process_texts(word_dict, trace_dict, word_count, trace_count, curr_text):
         traces = gen_traces(curr_word, curr_word_lower)
         traces_dict, traces_count = add_all_traces(traces_dict, traces_count, traces, curr_word)
         curr_word_vec = vectorize_word(curr_word, w, traces)
+        #how to determine context?
+        """
+        my analogy is we want our inner context to be a "parabola" either upwards or down.
+        imagine a local zoom on this segment if you could translate each word to a scalar value. 
+        We cant neccessarily get a scalar value but we can do pretty well.
+        we want to convert the words with their local context into "potential" wells so that our function will either trend towards or away from this
+        we process a sentence convert each word to a vector and map the vector to a potential?
+        then our function predicts the word based on the wells?
+        """
 
+        """
+        so, we use traces??? to try to map similar words??? or like acronyms or something
+        then we can map traces of words to similar potential values??
+        if we assume that every word has some potential, negative or positive, and it always wants to trend back to 0
+        """
         heavy_inner_context = [] #next + word + prev
         light_inner_context = [] #next + word + prev
         prev_prev_word = prev_word
@@ -115,8 +129,6 @@ def vectorize_word(curr, word_index, traces):
 def calc_radius(word_dict, trace_dict):
     #calc some median, or avg radius based on trace distance
     return 1
-
-    print('thanks for using me bot! Cya')
 
 if __name__ == "__main__":
     main()

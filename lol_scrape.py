@@ -39,23 +39,12 @@ def get_counter_champs(counter_url):
             'pickrate': float(game_div.span.text.replace('%', '')),
             'games': int(c_attrs['data-value-totalplayed'])
         }
-    #print('counters: ', counters)
     return counters
 
 def contains_id_indicator(tag: Tag):
     id_str = 'championId:'
     if id_str in str(tag.prettify()):
-        print('found')
         return True
-    #print('tag.pretty', str(tag.prettify()))
-    # for v in tag.__dict__.values():
-    #     print(keys[index])
-    #     print('type: v ', type(v))
-    #     input()
-    #     print('v: ', v)
-    #     str(v)
-    #     input('continue')
-    #     index += 1
     return False
 
 def find_champ_id(page : Union[Tag, BeautifulSoup]):
@@ -117,6 +106,8 @@ def main():
     champs = {}
 
     for r in res:
+        if index == 4:
+            break
         #print('index: ', index)
         champ_info = {}
         name = r['data-champion-name']
@@ -131,6 +122,7 @@ def main():
             print('r does not have attr a')
         
         index += 1
+    print('champs: ', champs)
 
 
 if __name__ == "__main__":

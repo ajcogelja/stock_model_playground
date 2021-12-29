@@ -12,6 +12,39 @@ headers = {
 html_doc = req.get('https://na.op.gg/champion/statistics', headers=headers)
 soup = BeautifulSoup(html_doc.content, 'html.parser')
 
+def get_counter_champs(counter_url):
+    print(counter_url)
+    req_headers = {
+        'referer': 'https://na.op.gg/',
+        'user-agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'
+    }  
+    champ_page_req = req.get(counter_url, headers=req_headers)
+    champ_page = BeautifulSoup(champ_page_req.content, 'html.parser')
+    attributes = {
+        'class': True,
+        'data-champion-name': True, 
+        'data-value-winrate' : True,
+    }
+    counter_list = champ_page.find_all('div', attrs=attributes)
+    counters = {} #dict
+    for counter in counter_list:
+        game_div = counter.find('div', class_='champion-matchup-list__totalplayed')
+        c_attrs = counter.attrs
+        #print('game_div', game_div)
+        #print('c', c_attrs)
+        counters[c_attrs['data-champion-name']] = {
+            'winrate': c_attrs['data-value-winrate'],
+            'pickrate': float(game_div.span.text.replace('%', '')),
+            'games': int(c_attrs['data-value-totalplayed'])
+        }
+    #print('counters: ', counters)
+    return counters        
+
+def find_tier(page):
+    found = page.find(lambda tag : (tag.name == 'b' and tag.text and 'Tier ' in tag.text))
+    #print('find:', found.text.replace('Tier ', ''))
+    return int(found.text.replace('Tier ', ''))
+
 def get_champ_info(url, name):
     req_headers = {
         'referer': 'https://na.op.gg/',
@@ -19,20 +52,22 @@ def get_champ_info(url, name):
     }  
     champ_page_req = req.get(url, headers=req_headers)
     champ_page = BeautifulSoup(champ_page_req.content, 'html.parser')
-    print('url: ', url)
-    f = open(name + '.html', "w")
-    f.write(str(champ_page.prettify()))
-    f.close()
-    #print('champ_page')
     champ_page_body = champ_page.body
+    info = {}
+    #print('regex:', champ_page(text=re.compile('counters'))) -- exaple on string parsing
+    info['id'] = 
+    info['tier'] = find_tier(champ_page_body)
+    found_anchors = champ_page_body.find_all('a', attrs={'href': True}, text='Counters')
+    for a in found_anchors:
+        print('a', a)
+        print('a.attrs: ', a.attrs)
+        print('a.text: ', a.text)
+        counter_url = 'https://na.op.gg' + a.attrs['href']
+        counters = get_counter_champs(counter_url)
+        info['counters'] = counters
 
-    #print('regex:', champ_page(text=re.compile('champion-matchup-champion-list')))
 
-    for div in champ_page.find_all('div', attrs={'class': True}):
-        if div.has_attr('class') and 'champion-matchup-champion-list' in div['class']:
-            print('div: ', div['class'])
-    #champ_page.find(name='div', class_='champion-matchup-champion-list')
-    return {}
+    return info
 
 def main():
     body = soup.body
@@ -46,10 +81,7 @@ def main():
         name = r['data-champion-name']
         url = 'https://na.op.gg'
         if r.a:
-            #print('r.a: ', r.a)
-            #print('r.a.attrs["href"]: ', r.a.attrs["href"])
             url += r.a['href']
-            #print('url: ', url)
             champ_info = get_champ_info(url, name)
             input('press a key to continue')
             #time.sleep(1  + random.random()/2) #sleep for half a second as to not get flagged as a scraping tool

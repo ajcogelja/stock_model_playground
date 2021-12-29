@@ -1,5 +1,7 @@
+from typing import Union
 from bs4 import BeautifulSoup
 import bs4
+from bs4.element import Script, Tag
 import requests as req
 import time
 import random
@@ -38,7 +40,46 @@ def get_counter_champs(counter_url):
             'games': int(c_attrs['data-value-totalplayed'])
         }
     #print('counters: ', counters)
-    return counters        
+    return counters
+
+def contains_id_indicator(tag: Tag):
+    id_str = 'championId:'
+    if id_str in str(tag.prettify()):
+        print('found')
+        return True
+    #print('tag.pretty', str(tag.prettify()))
+    # for v in tag.__dict__.values():
+    #     print(keys[index])
+    #     print('type: v ', type(v))
+    #     input()
+    #     print('v: ', v)
+    #     str(v)
+    #     input('continue')
+    #     index += 1
+    return False
+
+def find_champ_id(page : Union[Tag, BeautifulSoup]):
+    id_str = 'championId:'
+    found = page.find_all(lambda tag: (tag.name == 'script' and contains_id_indicator(tag)))  
+    for f in found:
+        found_string = str(f.prettify())
+        index = found_string.index(id_str)# + len(id_str)
+        end_index = found_string.index('\n', index)
+        other_end = found_string.index('}', index + len(id_str))
+        newline_champ_val = found_string[index + len(id_str):end_index].strip()
+        curly_champ_val = found_string[index + + len(id_str):other_end].strip()
+        # print('newline end index ', newline_champ_val)
+        # print('curly bracket end index', curly_champ_val)
+        # print('newline num: ', int(newline_champ_val))
+        # print('curly num:', int(curly_champ_val))
+
+        return int(curly_champ_val)
+        
+        #print('f: ', f.__dict__.keys())
+        #print('script vars: ', len(vars(script)) )#script.__dict__.keys())
+        #print('script.string:', script.__dict__.keys())
+
+    return -1
 
 def find_tier(page):
     found = page.find(lambda tag : (tag.name == 'b' and tag.text and 'Tier ' in tag.text))
@@ -55,7 +96,7 @@ def get_champ_info(url, name):
     champ_page_body = champ_page.body
     info = {}
     #print('regex:', champ_page(text=re.compile('counters'))) -- exaple on string parsing
-    info['id'] = 
+    info['id'] = find_champ_id(champ_page_body)
     info['tier'] = find_tier(champ_page_body)
     found_anchors = champ_page_body.find_all('a', attrs={'href': True}, text='Counters')
     for a in found_anchors:
@@ -83,6 +124,7 @@ def main():
         if r.a:
             url += r.a['href']
             champ_info = get_champ_info(url, name)
+            champs[name] = champ_info
             input('press a key to continue')
             #time.sleep(1  + random.random()/2) #sleep for half a second as to not get flagged as a scraping tool
         else:

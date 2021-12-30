@@ -128,8 +128,8 @@ def main():
     champs = {}
 
     for r in res:
-        if index == 3:
-            break
+        # if index == 3:
+        #     break
         #print('index: ', index)
         champ_info = {}
         name = r['data-champion-name']
@@ -138,8 +138,8 @@ def main():
             url += r.a['href']
             champ_info = get_champ_info(url, name)
             champs[name] = champ_info
-            input('press a key to continue')
-            #time.sleep(1  + random.random()/2) #sleep for half a second as to not get flagged as a scraping tool
+            #input('press a key to continue')
+            time.sleep(.2 + random.random()/2) #sleep for half a second as to not get flagged as a scraping tool
         #else:
             #print('r does not have attr a')
         

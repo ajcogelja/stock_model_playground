@@ -43,7 +43,7 @@ def get_counter_champs(counter_url):
         #print('game_div', game_div)
         #print('c', c_attrs)
         counters[c_attrs['data-champion-name']] = {
-            'winrate': c_attrs['data-value-winrate'],
+            'winrate': float(c_attrs['data-value-winrate']),
             'pickrate': float(game_div.span.text.replace('%', '')),
             'games': int(c_attrs['data-value-totalplayed'])
         }
@@ -126,7 +126,7 @@ def main():
             champ_info = get_champ_info(url, name)
             champs[name] = champ_info
             #input('press a key to continue')
-            time.sleep(.1 + random.random()/2) #sleep for half a second as to not get flagged as a scraping tool
+            #time.sleep(.1 + random.random()/2) #sleep for half a second as to not get flagged as a scraping tool
         
         index += 1
     with open("champs.json", "w") as outfile:

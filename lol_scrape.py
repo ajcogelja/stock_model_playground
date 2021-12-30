@@ -101,23 +101,13 @@ def get_champ_info(url, name):
         role = r.attrs['data-position'].lower()
         print('r.data-position: ', role)
         role_rate = r.find('span', attrs={'class' :'champion-stats-header__position__rate'})
-        print('tuple: ', (role, role_rate.text))
-
         role_counter_url = 'https://na.op.gg/champion/' + name + '/statistics/' + role + '/matchup'
         role_tier, role_counters = get_counter_champs(role_counter_url)
         champ_roles.append((role, float(role_rate.text.replace('%', '')), role_tier))
         print('role url: ', role_counter_url)
-        role_counters = {} #gen_counter_champs(role_counter_url)
-        # print('a', a)
-        # print('a.attrs: ', a.attrs)
-        # print('a.text: ', a.text)
-        # counter_url = 'https://na.op.gg' + a.attrs['href']
-        #counters = get_counter_champs(counter_url)
-        #info['counters'] = counters
         counters[role] = role_counters
     info['counters'] = counters
     info['roles'] = champ_roles
-    #info['tier'] = find_tier(champ_page_body) multiple tiers dependenind on role
 
     return info
 
@@ -128,9 +118,6 @@ def main():
     champs = {}
 
     for r in res:
-        # if index == 3:
-        #     break
-        #print('index: ', index)
         champ_info = {}
         name = r['data-champion-name']
         url = 'https://na.op.gg'
@@ -139,12 +126,9 @@ def main():
             champ_info = get_champ_info(url, name)
             champs[name] = champ_info
             #input('press a key to continue')
-            time.sleep(.2 + random.random()/2) #sleep for half a second as to not get flagged as a scraping tool
-        #else:
-            #print('r does not have attr a')
+            time.sleep(.1 + random.random()/2) #sleep for half a second as to not get flagged as a scraping tool
         
         index += 1
-    #print('champs: ', champs)
     with open("champs.json", "w") as outfile:
         json.dump(champs, outfile)
 

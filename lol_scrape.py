@@ -44,7 +44,7 @@ def get_counter_champs(counter_url):
         #print('c', c_attrs)
         counters[c_attrs['data-champion-name']] = {
             'winrate': float(c_attrs['data-value-winrate']),
-            'pickrate': float(game_div.span.text.replace('%', '')),
+            'pickrate': float(game_div.span.text.replace('%', ''))/100,
             'games': int(c_attrs['data-value-totalplayed'])
         }
     return tier, counters

@@ -17,11 +17,9 @@ soup = BeautifulSoup(html_doc.content, 'html.parser')
 
 def find_tier(page):
     found = page.find(lambda tag : (tag.name == 'b' and tag.text and 'Tier ' in tag.text))
-    #print('find:', found.text.replace('Tier ', ''))
     return int(found.text.replace('Tier ', ''))
 
 def get_counter_champs(counter_url):
-    #print(counter_url)
     req_headers = {
         'referer': 'https://na.op.gg/',
         'user-agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36'
@@ -40,8 +38,6 @@ def get_counter_champs(counter_url):
     for counter in counter_list:
         game_div = counter.find('div', class_='champion-matchup-list__totalplayed')
         c_attrs = counter.attrs
-        #print('game_div', game_div)
-        #print('c', c_attrs)
         counters[c_attrs['data-champion-name']] = {
             'winrate': float(c_attrs['data-value-winrate']),
             'pickrate': float(game_div.span.text.replace('%', ''))/100,
@@ -65,16 +61,8 @@ def find_champ_id(page : Union[Tag, BeautifulSoup]):
         other_end = found_string.index('}', index + len(id_str))
         newline_champ_val = found_string[index + len(id_str):end_index].strip()
         curly_champ_val = found_string[index + + len(id_str):other_end].strip()
-        # print('newline end index ', newline_champ_val)
-        # print('curly bracket end index', curly_champ_val)
-        # print('newline num: ', int(newline_champ_val))
-        # print('curly num:', int(curly_champ_val))
 
         return int(curly_champ_val)
-        
-        #print('f: ', f.__dict__.keys())
-        #print('script vars: ', len(vars(script)) )#script.__dict__.keys())
-        #print('script.string:', script.__dict__.keys())
 
     return -1
 
@@ -87,17 +75,13 @@ def get_champ_info(url, name):
     champ_page = BeautifulSoup(champ_page_req.content, 'html.parser')
     champ_page_body = champ_page.body
     info = {}
-    #print('regex:', champ_page(text=re.compile('counters'))) -- example on string parsing
     info['id'] = find_champ_id(champ_page_body)
     #/champion/aatrox/statistics/top #list with data position attribute link
     #/champion/aatrox/statistics/top/matchup #what i currently have
-    # found_anchors = champ_page_body.find_all('a', attrs={'href': True}, text='Counters')
-    #I could add a roles thing in info, or i could
     counters = {}
     roles = champ_page_body.find_all('li', attrs={'data-position': True})
     champ_roles = []
     for r in roles:
-        print('r: ', r)
         role = r.attrs['data-position'].lower()
         print('r.data-position: ', role)
         role_rate = r.find('span', attrs={'class' :'champion-stats-header__position__rate'})

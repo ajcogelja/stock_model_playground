@@ -9,7 +9,7 @@ import { JsonFetcherService } from '../json-fetcher.service';
 })
 export class ChampInputAreaComponent implements AfterViewInit {
 
-
+  counters: string[] = []
   Roles = Roles
   constructor(private fetcher: JsonFetcherService) { }
   @ViewChild('top') topChamp: ChampInputFieldComponent;
@@ -30,7 +30,46 @@ export class ChampInputAreaComponent implements AfterViewInit {
   }
 
   checkCounters = () => {
-    console.log(this.fetcher.getChampData(this.topChamp.getValue()))
+    const data = this.fetcher.getChampData(this.topChamp.getValue())
+    const data2 = this.fetcher.getChampData(this.midChamp.getValue())
+    this.counters = []
+    const counters1: string[] = []
+    const counters2: string[] = []
+    if(data !== null){
+    //this.counters = []
+      Object.keys(data.counters).forEach(element => { //get position
+        Object.keys(data.counters[element]).forEach(i => {
+          //console.log('i1: ', i);
+          if(!counters1.includes(i)){
+            counters1.push(i)
+          }
+        })
+      });
+    }
+    if(data2 !== null){
+      Object.keys(data2.counters).forEach(element => { //get position
+        Object.keys(data2.counters[element]).forEach(i => {
+          //console.log('i2: ', i);
+          if(!counters2.includes(i)){
+            counters2.push(i)
+          }
+        })
+      });
+    }
+    if(counters1.length > 0 && counters2.length > 0){
+      for(const c of counters1){
+        if(counters2.includes(c)){
+          //console.log('both lists have: ', c);
+          this.counters.push(c);
+        }
+      }
+    }
+    console.log()
+
+  }
+
+  clearCounters = () => {
+
   }
 
 

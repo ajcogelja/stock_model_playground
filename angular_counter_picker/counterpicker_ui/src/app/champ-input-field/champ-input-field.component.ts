@@ -45,6 +45,7 @@ export class ChampInputFieldComponent implements OnInit {
     );
 
     const selectElement = document.querySelector('input')!;
+    
     console.log('selected element:', selectElement);
     selectElement.addEventListener('input', this.updateNameVal);
     
@@ -60,6 +61,11 @@ export class ChampInputFieldComponent implements OnInit {
 
   public getValue(){
     //console.log('get value', this.name_val);
-    return this.name_val;
+    document.querySelectorAll('input').forEach(e => {
+      console.log('input: ', e)
+    })
+    const selectElement = document.querySelector('input')!;
+    console.log('val from element: ', selectElement.value);
+    return selectElement.value;
   }
 }

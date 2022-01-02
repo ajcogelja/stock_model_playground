@@ -1,8 +1,8 @@
 <form class="example-form">
     <mat-form-field class="example-full-width" appearance="fill">
-      <mat-label>Number</mat-label>
-      <input type="text"
-             placeholder="Pick one"
+      <mat-label>{{role}}</mat-label>
+      <input id={{role}} type="text"
+             placeholder="Champ name?"
              aria-label="Enter Champ Name"
              matInput
              [formControl]="myControl"
@@ -14,4 +14,3 @@
       </mat-autocomplete>
     </mat-form-field>
   </form>
- 

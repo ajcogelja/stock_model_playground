@@ -28,7 +28,7 @@ export class ChampInputFieldComponent implements OnInit {
 
   }
 
-  ngOnInit() { 
+  ngOnInit() {
     console.log('init for role: ', this.role);
     this.jsonFetcher.data.subscribe((res: any) => {
       this.data = res
@@ -38,17 +38,17 @@ export class ChampInputFieldComponent implements OnInit {
           this.options = this.name_list;
           this.init = true
     });
-    
+
     this.filteredOptions = this.myControl.valueChanges.pipe(
       startWith(''),
       map(value => this._filter(value)),
     );
 
     const selectElement = document.querySelector('input')!;
-    
+
     console.log('selected element:', selectElement);
-    selectElement.addEventListener('input', this.updateNameVal);
-    
+    //selectElement.addEventListener('input', this.updateNameVal);
+
   }
 
   private _filter(value: string): string[] {
@@ -61,11 +61,20 @@ export class ChampInputFieldComponent implements OnInit {
 
   public getValue(){
     //console.log('get value', this.name_val);
-    document.querySelectorAll('input').forEach(e => {
-      console.log('input: ', e)
+  let selectElement: HTMLInputElement | null;
+    document.querySelectorAll('app-champ-input-field').forEach(e => {
+      //console.log('input: ', e.attributes)
+      for(let i = 0; i < e.attributes.length; i++){
+        console.log('attributes: ', e.attributes[i].name, e.attributes[i].value)
+        if(e.attributes[i].value && e.attributes[i].value === this.role){
+          selectElement = e.querySelector('input');
+          console.log('found it:', selectElement);
+          break;
+        }
+      }
     })
-    const selectElement = document.querySelector('input')!;
-    console.log('val from element: ', selectElement.value);
-    return selectElement.value;
+    //const selectElement = document.querySelector('input')!;
+    console.log('val from element: ', selectElement!.value);
+    return selectElement!.value;
   }
 }

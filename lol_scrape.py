@@ -76,6 +76,7 @@ def get_champ_info(url, name):
     champ_page_body = champ_page.body
     info = {}
     info['id'] = find_champ_id(champ_page_body)
+    info['pick_url'] = ''
     #/champion/aatrox/statistics/top #list with data position attribute link
     #/champion/aatrox/statistics/top/matchup #what i currently have
     counters = {}

@@ -77,11 +77,13 @@ export class ChampInputAreaComponent implements AfterViewInit {
     // }
 
     if(this.useRoles){
-      this.counters = Object.keys(this.getCountersWithRoles());
-      this.extractMostFrequent(this.getCountersWithRoles());
+      this.counters = this.extractMostFrequent(this.getCountersWithRoles());
+      //Object.keys(this.getCountersWithRoles());
+      //this.extractMostFrequent(this.getCountersWithRoles());
     } else {
-      this.counters = Object.keys(this.getCountersWithoutRoles());
-      this.extractMostFrequent(this.getCountersWithoutRoles());
+      this.counters = this.extractMostFrequent(this.getCountersWithoutRoles());
+      //Object.keys(this.getCountersWithoutRoles());
+      
     }
 
 
@@ -98,68 +100,97 @@ export class ChampInputAreaComponent implements AfterViewInit {
 
   getCounterFreq(){
     const counterFreq: Map<String, number> = new Map<String, number>();
-    if(this.useRoles){
-      this.inputFields.forEach((field: ChampInputFieldComponent) => 
-      {
-        const roleCounters = this.fetcher.getCountersForRole(field.getValue(), field.getRole())
-        if(roleCounters != null){
-          Object.keys(roleCounters).forEach((el: string) => {
-            if(counterFreq.has(el)){
-              counterFreq.set(el, counterFreq.get(el)! + 1)
-            } else {
-              counterFreq.set(el, 1)
-            }
-          });
-        }
-      })
-    } else {
-      this.inputFields.forEach((field: ChampInputFieldComponent) => 
-      {
-        const roleCounters = this.fetcher.getCounters(field.getValue())
-        if(roleCounters != null){
-          Object.keys(roleCounters).forEach((el: string) => {
-            Object.keys(roleCounters[el]).forEach((elem: string) => {
-              if(counterFreq.has(el)){
-              counterFreq.set(elem, counterFreq.get(elem)! + 1)
-            } else {
-              counterFreq.set(elem, 1)
-            }
-            })
-          });
-        }
-      })
-    }
+    this.inputFields.forEach((field: ChampInputFieldComponent) => 
+    {
+      const roleCounters = (this.useRoles) ? this.fetcher.getCountersForRole(field.getValue(), field.getRole()):this.fetcher.getCounters(field.getValue())
+      if(roleCounters != null){
+         Object.keys(roleCounters).forEach((el: string) => {
+          if(counterFreq.has(el)){
+            counterFreq.set(el, counterFreq.get(el)! + 1)
+          } else {
+            counterFreq.set(el, 1)
+          }
+        });
+      }
+    })
+    
 
     return counterFreq;
   }
 
-  extractMostFrequent(counterFreq: Map<String, number>){
-    let totalOccs = 0;
-    Object.values(counterFreq).forEach((occ) => {
-      totalOccs += (+occ);
-    });
-    const sorted = [...counterFreq].map(e =>{ return e[1];}).slice().sort(function(a, b) {
-      return b-a; 
-    });
-    const list: string[] = []
-    var unique = [...new Set(sorted.values())]
-    const sortedLen = sorted.length;
-    let prevVal = unique[0];
-    let run = true;
-    sorted.forEach((key, val) => {
-      if(val !== prevVal && list.length > sortedLen*2){
-        run = false;
-      }
-      if(run){
-        //list.push(key);
-      }
-    });
-    console.log('counter freq: ', sorted);
+  getChampImageUrl(champName: string, width = 40){
+    return this.fetcher.getImageSource(champName, width);
+  }
 
-    return list;
+  extractMostFrequent(counterFreq: Map<String, number>){
+    console.log('counter freq what about occ????: ', counterFreq);
+    let totalOccs = 0;
+    const freq = new Map<number, number>();
+    counterFreq.forEach((val, key) => {
+      console.log('key:', key, 'val',  val);
+      totalOccs += val;;
+      if(freq.has(val)){
+        freq.set(val, freq.get(val)! + 1)
+      } else {
+        freq.set(val, 1)
+      }
+    });
+    // const sorted = [...counterFreq].map(e =>{ return e[1];}).slice().sort(function(a, b) {
+    //   return b-a; 
+    // });
+    const sortedFreq = new Map([...freq.entries()].sort(
+      (a,b) => {
+        console.log('a, b: ', a, b);
+        return b[1] - a[1];
+    }))
+
+    const threshold = .4; 
+    //want champ pool to typically contain 10-15 champs. Easier with a better filter function
+    //for now it is naiive
+    //a pool of size 10-15 in order will give best results, too many and its hard to read
+    let maxItemChanges = 0;
+    let freqSum = 0;
+    sortedFreq.forEach((val, key) => {
+      const freqVal = val/totalOccs;
+      freqSum += freqVal
+      console.log('freq val: ', freqVal);
+      console.log('freqSum so far: ', freqSum);
+      if(freqSum <= threshold){
+        maxItemChanges += 1
+      }
+      sortedFreq.set(key, freqVal)
+    })
+    console.log('item changes: ', maxItemChanges);
+    const sorted = new Map([...counterFreq.entries()].sort(
+      (a,b) => {
+        return b[1] - a[1];
+    }))
+    let prevVal: any = null;
+    let itemChanges = 0;
+    const best: string[] = []
+    const filtered = new Map([...sorted.entries()].filter(
+      (entry, index) => {
+        const key = entry[0];
+        const val = entry[1];
+        if(prevVal !== null && prevVal !== val){
+          itemChanges += 1
+        }
+        prevVal = val;
+        if((itemChanges <= maxItemChanges && best.length < 20) || best.length < 10){
+          best.push("" + key);
+          //return true;
+        }
+        return true;
+    }))
+    console.log('filtered: ', filtered);
+    //sorted largest to smallest
+    console.log('best: ', best)
+    return best;
   }
 
 }
+
+
 
 export enum Roles {
   Top='top',

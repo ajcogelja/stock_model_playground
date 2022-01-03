@@ -1,21 +1,21 @@
 <form class="example-form">
-  <div>
-    <mat-form-field class="example-full-width" appearance="fill">
-      <mat-label>{{role}}</mat-label>
+  <div style="width: 30%;">
+    <mat-form-field class="" appearance="fill">
+      <mat-label>{{getLabelText()}}</mat-label>
       <input id={{role}} type="text"
              placeholder="Champ name?"
-             aria-label="Enter Champ Name"
              matInput
              [formControl]="myControl"
              [matAutocomplete]="auto">
       <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete">
         <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
           {{option}}
+          <img src="{{getDropdownImage(option)}}">
         </mat-option>
       </mat-autocomplete>
     </mat-form-field>
     <label *ngIf="showLabel" style="float: right">
-      {{role}}
+      {{getWholeRoleName(role)}}
     </label>
   </div>
 </form>

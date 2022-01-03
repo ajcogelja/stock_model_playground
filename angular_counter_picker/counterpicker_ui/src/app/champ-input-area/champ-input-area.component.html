@@ -1,7 +1,3 @@
-<p>champ-input-area works!</p>
-
-
-
 <app-champ-input-field #top [role]="Roles.Top"></app-champ-input-field>
 <app-champ-input-field #jg [role]="Roles.Jg"></app-champ-input-field>
 <app-champ-input-field #mid [role]="Roles.Mid"></app-champ-input-field>
@@ -10,14 +6,21 @@
 
 
 <button id="getCountersButton">
-    Get counters?
+    Get Best Counters
 </button>
 <button id="toggleRoleButton">
 Consider Champ Roles?
 </button>
 
-<h2>Counters:</h2>
-<br>
-<ul>
-    <li *ngFor="let item of counters">{{item}}</li>
-</ul>
+<div *ngIf="counters.length > 0">
+    <h2>Counters:</h2>
+    <br>
+    <ul>
+        <li *ngFor="let item of counters">
+            <div class="counter-option-style">
+                <b style="font-size: 30px;">{{item}}</b>
+                <img src="{{getChampImageUrl(item)}}">
+            </div>
+        </li>
+    </ul>
+</div>

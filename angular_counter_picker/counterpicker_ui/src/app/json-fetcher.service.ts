@@ -38,7 +38,18 @@ export class JsonFetcherService {
     if(this.champ_data){
       if(Object.keys(this.champ_data).includes(name)){
         console.log('name found in list: ', name); //need a fallback for if champ doesnt have role???
-        return this.champ_data[`${name}`].counters;
+        
+        const returned: any[string] = {}
+          console.log('compiling all counters since role not found in list')
+          Object.keys(this.champ_data[`${name}`].counters).forEach(key => {
+            Object.keys(this.champ_data[`${name}`].counters[key]).forEach((champ) => {
+              if(!Object.keys(returned).includes(champ)){
+                returned[champ] = this.champ_data[`${name}`].counters[key][champ];
+              }
+            })
+          })
+
+        return returned;
       } else {
         console.log('name not found: ', name);
         return null;
@@ -49,6 +60,14 @@ export class JsonFetcherService {
     }
   }
 
+  getImageSource(champName: string, width: number){
+    return 'https://opgg-static.akamaized.net/images/lol/champion/' + this.getPlainName(champName) + '.png?image=c_scale,q_auto,w_' + width;
+  }
+
+  getPlainName(champName: string){
+    return champName.replace('-', '').replace('.', '').replace("'", '');
+  }
+
 
   getCountersForRole(name: string, role: string){
     if(this.champ_data){
@@ -57,7 +76,16 @@ export class JsonFetcherService {
         if(Object.keys(this.champ_data[`${name}`].counters).includes(role)){
           return this.champ_data[`${name}`].counters[role];
         } else {
-          return this.champ_data[`${name}`].counters[0];
+          const returned: any[string] = {}
+          console.log('compiling all counters since role not found in list')
+          Object.keys(this.champ_data[`${name}`].counters).forEach(key => {
+            Object.keys(this.champ_data[`${name}`].counters[key]).forEach((champ) => {
+              if(!Object.keys(returned).includes(champ)){
+                returned[champ] = this.champ_data[`${name}`].counters[key][champ];
+              }
+            })
+          })
+          return returned;
         }
       } else {
         console.log('name not found: ', name);

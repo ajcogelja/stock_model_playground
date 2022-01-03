@@ -30,6 +30,34 @@ export class ChampInputFieldComponent implements OnInit {
 
   }
 
+  getDropdownImage(name: string, width = 20){
+    return this.jsonFetcher.getImageSource(name, width)
+  }
+
+  getWholeRoleName(role: string){
+    if(role === 'top'){
+      return role;
+    } else if(role === 'bot'){
+      return 'bottom';
+    } else if(role === 'mid'){
+      return 'middle'
+    } else if(role === 'jg'){
+      return 'jungle';
+    } else if(role === 'sup'){
+      return 'support'
+    } else {
+      return 'unknown';
+    }
+  }
+
+  getLabelText(){
+    if(this.showLabel){
+      return this.getWholeRoleName(this.role);
+    } else {
+      return "Enter Champ"
+    }
+  }
+
   getRole(){
     return this.role;
   }
@@ -54,11 +82,6 @@ export class ChampInputFieldComponent implements OnInit {
       map(value => this._filter(value)),
     );
 
-    //const selectElement = document.querySelector('input')!;
-
-    //console.log('selected element:', selectElement);
-    //selectElement.addEventListener('input', this.updateNameVal);
-
   }
 
   private _filter(value: string): string[] {
@@ -73,17 +96,13 @@ export class ChampInputFieldComponent implements OnInit {
     //console.log('get value', this.name_val);
   let selectElement: HTMLInputElement | null;
     document.querySelectorAll('app-champ-input-field').forEach(e => {
-      //console.log('input: ', e.attributes)
       for(let i = 0; i < e.attributes.length; i++){
-        //console.log('attributes: ', e.attributes[i].name, e.attributes[i].value)
         if(e.attributes[i].value && e.attributes[i].value === this.role){
           selectElement = e.querySelector('input');
-          //console.log('found it:', selectElement);
           break;
         }
       }
     })
-    //const selectElement = document.querySelector('input')!;
     console.log('val from element: ', selectElement!.value);
     return selectElement!.value;
   }

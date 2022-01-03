@@ -2,6 +2,7 @@ import { Component, Input, OnInit, Output } from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {Observable} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
+import { Roles } from '../champ-input-area/champ-input-area.component';
 import { JsonFetcherService } from '../json-fetcher.service';
 
 @Component({
@@ -22,10 +23,19 @@ export class ChampInputFieldComponent implements OnInit {
   options: string[] = [];
   filteredOptions: Observable<string[]>;
   name_val: string = '';
+  showLabel: boolean = true;
 
   updateNameVal = (e:any ) =>{
     this.name_val = e.target.value;
 
+  }
+
+  getRole(){
+    return this.role;
+  }
+
+  getRoleEnum(){
+    return (<any>Roles)[this.role]
   }
 
   ngOnInit() {
@@ -44,9 +54,9 @@ export class ChampInputFieldComponent implements OnInit {
       map(value => this._filter(value)),
     );
 
-    const selectElement = document.querySelector('input')!;
+    //const selectElement = document.querySelector('input')!;
 
-    console.log('selected element:', selectElement);
+    //console.log('selected element:', selectElement);
     //selectElement.addEventListener('input', this.updateNameVal);
 
   }
@@ -65,10 +75,10 @@ export class ChampInputFieldComponent implements OnInit {
     document.querySelectorAll('app-champ-input-field').forEach(e => {
       //console.log('input: ', e.attributes)
       for(let i = 0; i < e.attributes.length; i++){
-        console.log('attributes: ', e.attributes[i].name, e.attributes[i].value)
+        //console.log('attributes: ', e.attributes[i].name, e.attributes[i].value)
         if(e.attributes[i].value && e.attributes[i].value === this.role){
           selectElement = e.querySelector('input');
-          console.log('found it:', selectElement);
+          //console.log('found it:', selectElement);
           break;
         }
       }
@@ -77,4 +87,9 @@ export class ChampInputFieldComponent implements OnInit {
     console.log('val from element: ', selectElement!.value);
     return selectElement!.value;
   }
+
+  public toggleLabel(){
+    this.showLabel = !this.showLabel;
+  }
+
 }

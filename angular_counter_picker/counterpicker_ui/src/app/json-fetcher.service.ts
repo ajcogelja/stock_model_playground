@@ -34,11 +34,31 @@ export class JsonFetcherService {
     }
   }
 
-  getChampDataForRole(name: string, role: string){
+  getCounters(name: string){
     if(this.champ_data){
       if(Object.keys(this.champ_data).includes(name)){
-        console.log('name found in list: ', name);
-        return this.champ_data[`${name}`];
+        console.log('name found in list: ', name); //need a fallback for if champ doesnt have role???
+        return this.champ_data[`${name}`].counters;
+      } else {
+        console.log('name not found: ', name);
+        return null;
+      }
+    } else {
+      console.log('no champ data :(');
+      return null;
+    }
+  }
+
+
+  getCountersForRole(name: string, role: string){
+    if(this.champ_data){
+      if(Object.keys(this.champ_data).includes(name)){
+        console.log('name found in list: ', name); //need a fallback for if champ doesnt have role???
+        if(Object.keys(this.champ_data[`${name}`].counters).includes(role)){
+          return this.champ_data[`${name}`].counters[role];
+        } else {
+          return this.champ_data[`${name}`].counters[0];
+        }
       } else {
         console.log('name not found: ', name);
         return null;

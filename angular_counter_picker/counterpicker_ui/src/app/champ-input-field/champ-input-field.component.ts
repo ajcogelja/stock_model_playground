@@ -94,17 +94,17 @@ export class ChampInputFieldComponent implements OnInit {
 
   public getValue(){
     //console.log('get value', this.name_val);
-  let selectElement: HTMLInputElement | null;
-    document.querySelectorAll('app-champ-input-field').forEach(e => {
-      for(let i = 0; i < e.attributes.length; i++){
-        if(e.attributes[i].value && e.attributes[i].value === this.role){
-          selectElement = e.querySelector('input');
-          break;
-        }
-      }
-    })
-    console.log('val from element: ', selectElement!.value);
-    return selectElement!.value;
+    let selectElement = document.querySelector('input[id=' + this.role + ']') as HTMLInputElement
+    // document.querySelectorAll('app-champ-input-field').forEach(e => {
+    //   for(let i = 0; i < e.attributes.length; i++){
+    //     if(e.attributes[i].value && e.attributes[i].value === this.role){
+    //       selectElement = e.querySelector('input');
+    //       break;
+    //     }
+    //   }
+    // })
+    //console.log('val from element: ', selectElement.value);
+    return selectElement.value;
   }
 
   public toggleLabel(){

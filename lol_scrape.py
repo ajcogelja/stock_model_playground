@@ -66,6 +66,12 @@ def find_champ_id(page : Union[Tag, BeautifulSoup]):
 
     return -1
 
+def get_pic_url(page: Union[Tag, BeautifulSoup]):
+    div_class = 'champion-stats-header-info__image'
+    found = page.find('div', attrs={'class' : 'champion-stats-header-info__image'})
+    print('pic url found', found.img.attrs['src'])
+    return 'https:' + found.img.attrs['src']
+
 def get_champ_info(url, name):
     req_headers = {
         'referer': 'https://na.op.gg/',
@@ -76,7 +82,7 @@ def get_champ_info(url, name):
     champ_page_body = champ_page.body
     info = {}
     info['id'] = find_champ_id(champ_page_body)
-    info['pick_url'] = ''
+    info['pick_url'] = get_pic_url(champ_page_body)
     #/champion/aatrox/statistics/top #list with data position attribute link
     #/champion/aatrox/statistics/top/matchup #what i currently have
     counters = {}
@@ -84,16 +90,16 @@ def get_champ_info(url, name):
     champ_roles = []
     for r in roles:
         role = r.attrs['data-position'].lower()
-        print('r.data-position: ', role)
+        #print('r.data-position: ', role)
         role_rate = r.find('span', attrs={'class' :'champion-stats-header__position__rate'})
         role_counter_url = 'https://na.op.gg/champion/' + name + '/statistics/' + role + '/matchup'
         role_tier, role_counters = get_counter_champs(role_counter_url)
         champ_roles.append((role, float(role_rate.text.replace('%', '')), role_tier))
-        print('role url: ', role_counter_url)
+        #print('role url: ', role_counter_url)
         counters[role] = role_counters
     info['counters'] = counters
     info['roles'] = champ_roles
-
+    #input('go on?')
     return info
 
 def main():

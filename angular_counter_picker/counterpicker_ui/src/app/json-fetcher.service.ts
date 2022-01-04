@@ -38,7 +38,6 @@ export class JsonFetcherService {
     if(this.champ_data){
       if(Object.keys(this.champ_data).includes(name)){
         console.log('name found in list: ', name); //need a fallback for if champ doesnt have role???
-        
         const returned: any[string] = {}
           console.log('compiling all counters since role not found in list')
           Object.keys(this.champ_data[`${name}`].counters).forEach(key => {
@@ -61,7 +60,8 @@ export class JsonFetcherService {
   }
 
   getImageSource(champName: string, width: number){
-    return 'https://opgg-static.akamaized.net/images/lol/champion/' + this.getPlainName(champName) + '.png?image=c_scale,q_auto,w_' + width;
+    console.log(this.champ_data[champName]['pick_url'].split("_140")[0])
+    return this.champ_data[champName]['pick_url'].split("_140")[0] + '_25';
   }
 
   getPlainName(champName: string){
@@ -120,7 +120,7 @@ export class JsonFetcherService {
   }
 
   getJson(){
-    const url = 'https://s3.us-east-2.amazonaws.com/ajc.champ.bucket/champs.json'
+    const url = 'https://s3.us-east-2.amazonaws.com/ajc.champ.bucket/champs.json';//'https://s3.us-east-2.amazonaws.com/ajc.champ.bucket/champs.json'
     return this.http.get<string>(url);
   }
 
